@@ -1,0 +1,50 @@
+[
+  {
+    "awayTeam": "Curaçao",
+    "date": "2026-06-20",
+    "homeTeam": "Ecuador",
+    "id": "537354",
+    "league": "FIFA World Cup",
+    "livescoreId": "537354",
+    "markets": "Over 2.5 Goals",
+    "matchStatus": "Not Started",
+    "prediction": "",
+    "reason": "",
+    "score": "0-0",
+    "status": "pending",
+    "time": "00:00",
+    "type": "basic"
+  },
+  {
+    "awayTeam": "Senegal",
+    "date": "2026-06-20",
+    "homeTeam": "Argentina",
+    "id": "537355",
+    "league": "FIFA World Cup",
+    "livescoreId": "537355",
+    "markets": "1X2",
+    "matchStatus": "Not Started",
+    "prediction": "",
+    "reason": "",
+    "score": "0-0",
+    "status": "pending",
+    "time": "12:00",
+    "type": "premium"
+  },
+  {
+    "awayTeam": "Belgium",
+    "date": "2026-06-20",
+    "homeTeam": "France",
+    "id": "537356",
+    "league": "FIFA World Cup",
+    "livescoreId": "537356",
+    "markets": "BTTS",
+    "matchStatus": "Not Started",
+    "prediction": "",
+    "reason": "",
+    "score": "0-0",
+    "status": "pending",
+    "time": "18:00",
+    "type": "basic"
+  }
+]
