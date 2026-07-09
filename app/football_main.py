@@ -19,6 +19,14 @@ logging.basicConfig(level=logging.INFO)
 
 # Firebase helpers live here so the pipeline can store results outside the app.
 def init_firebase() -> firestore.Client:
+    """
+    Initialise Firebase Admin SDK (safe to call multiple times).
+
+    Preferred: set FIREBASE_CREDS to the full service-account JSON (as one
+    string) — this is what CI/GitHub Actions should use.
+
+    Fallback (local dev): set individual FIREBASE_* env vars.
+    """
     if not firebase_admin._apps:
         firebase_creds_raw = os.environ.get("FIREBASE_CREDS")
 
@@ -26,7 +34,6 @@ def init_firebase() -> firestore.Client:
             service_account = json.loads(firebase_creds_raw)
             cred = credentials.Certificate(service_account)
         else:
-            # local dev fallback using individual env vars
             private_key = os.environ["FIREBASE_PRIVATE_KEY"].replace("\\n", "\n")
             service_account = {
                 "type": "service_account",
@@ -45,6 +52,7 @@ def init_firebase() -> firestore.Client:
         logger.info("Firebase: initialised")
 
     return firestore.client()
+
 
 def append_to_firestore(result: dict) -> None:
     """
@@ -96,43 +104,21 @@ def get_daily_matches() -> dict | None:
     try:
         logger.info("Fetching daily matches from API...")
         response = requests.get("https://backend-livetips.onrender.com/daily")
-        
+
         if response.status_code == 200:
-           
             return response.json()
+
+        logger.warning(
+            f"API returned non-200 status: {response.status_code}"
+        )
     except requests.RequestException as e:
         logger.warning(f"Could not fetch from API ({e})")
     return None
 
 
-# Load payload data from a file, stdin, or the live API.
+# Load payload data from the live API.
 def load_payload() -> dict:
-    """
-    Load match payload from:
-      1. File path passed as sys.argv[1]
-      2. Stdin pipe
-      3. Live API call
-    """
-    if len(sys.argv) > 1:
-        path = Path(sys.argv[1])
-        if not path.exists():
-            logger.error(f"ERROR: File not found: {path}")
-            sys.exit(1)
-        with open(path, encoding="utf-8") as f:
-            payload = json.load(f)
-        logger.info(f"Loaded payload from file: {path}")
-        return payload
-
-    if not sys.stdin.isatty():
-        try:
-            payload = json.load(sys.stdin)
-            logger.info("Loaded payload from stdin")
-            return payload
-        except json.JSONDecodeError as e:
-            logger.error(f"ERROR: Invalid JSON from stdin: {e}")
-            sys.exit(1)
-
-    logger.info("No payload provided — fetching from live API.")
+    """Always fetch the match payload from the live backend API."""
     data = get_daily_matches()
     return data if data else {}
 
@@ -142,8 +128,6 @@ def main():
     logger.info("FOOTBALL PREDICTION ANALYZER — Agent-Based Web Research")
 
     payload = load_payload()
-
-
 
     total = payload.get("total", len(payload.get("matches", [])))
     logger.info(f"\n  Date    : {payload.get('date', 'Unknown')}")
@@ -165,7 +149,6 @@ def main():
     try:
         agent = FootballPredictionAgent(
             groq_api_key=os.getenv("GROQ_API_KEY")
-           
         )
     except ValueError as exc:
         logger.error(str(exc))
