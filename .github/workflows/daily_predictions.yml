@@ -25,6 +25,8 @@ jobs:
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           FIREBASE_CREDS: ${{ secrets.FIREBASE_CREDS }}
+          DAILY_MATCHES_API_URL: ${{ secrets.DAILY_MATCHES_API_URL}}
+
         run: python -m app.football_main
 
       - name: Upload trajectories
