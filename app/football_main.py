@@ -1,11 +1,3 @@
-"""
-Football Prediction — CLI Runner
-Accepts a full daily matches JSON payload and outputs structured nested predictions.
-Usage:
-  python main.py                        # uses built-in sample payload
-  python main.py payload.json           # reads payload from file
-  cat payload.json | python main.py     # reads payload from stdin
-"""
 import json
 import logging
 import sys
@@ -27,38 +19,32 @@ logging.basicConfig(level=logging.INFO)
 
 # Firebase helpers live here so the pipeline can store results outside the app.
 def init_firebase() -> firestore.Client:
-    """
-    Initialise Firebase Admin SDK from .env variables (safe to call multiple times).
-
-    Required .env keys:
-      FIREBASE_PROJECT_ID
-      FIREBASE_PRIVATE_KEY_ID
-      FIREBASE_PRIVATE_KEY        (include the full PEM, with literal \\n)
-      FIREBASE_CLIENT_EMAIL
-      FIREBASE_CLIENT_ID
-      FIREBASE_CLIENT_CERT_URL
-    """
     if not firebase_admin._apps:
-        private_key = os.environ["FIREBASE_PRIVATE_KEY"].replace("\\n", "\n")
+        firebase_creds_raw = os.environ.get("FIREBASE_CREDS")
 
-        service_account = {
-            "type": "service_account",
-            "project_id":                  os.environ["FIREBASE_PROJECT_ID"],
-            "private_key_id":              os.environ["FIREBASE_PRIVATE_KEY_ID"],
-            "private_key":                 private_key,
-            "client_email":                os.environ["FIREBASE_CLIENT_EMAIL"],
-            "client_id":                   os.environ["FIREBASE_CLIENT_ID"],
-            "auth_uri":                    "https://accounts.google.com/o/oauth2/auth",
-            "token_uri":                   "https://oauth2.googleapis.com/token",
-            "client_x509_cert_url":        os.environ["FIREBASE_CLIENT_CERT_URL"],
-        }
+        if firebase_creds_raw:
+            service_account = json.loads(firebase_creds_raw)
+            cred = credentials.Certificate(service_account)
+        else:
+            # local dev fallback using individual env vars
+            private_key = os.environ["FIREBASE_PRIVATE_KEY"].replace("\\n", "\n")
+            service_account = {
+                "type": "service_account",
+                "project_id":           os.environ["FIREBASE_PROJECT_ID"],
+                "private_key_id":       os.environ["FIREBASE_PRIVATE_KEY_ID"],
+                "private_key":          private_key,
+                "client_email":         os.environ["FIREBASE_CLIENT_EMAIL"],
+                "client_id":            os.environ["FIREBASE_CLIENT_ID"],
+                "auth_uri":             "https://accounts.google.com/o/oauth2/auth",
+                "token_uri":            "https://oauth2.googleapis.com/token",
+                "client_x509_cert_url": os.environ["FIREBASE_CLIENT_CERT_URL"],
+            }
+            cred = credentials.Certificate(service_account)
 
-        cred = credentials.Certificate(service_account)
         firebase_admin.initialize_app(cred)
-        logger.info("Firebase: initialised from .env credentials")
+        logger.info("Firebase: initialised")
 
     return firestore.client()
-
 
 def append_to_firestore(result: dict) -> None:
     """
