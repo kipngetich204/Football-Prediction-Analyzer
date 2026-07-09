@@ -289,7 +289,7 @@ class FootballPredictionAgent:
 
         for idx, match in enumerate(matches, 1):
             if match.get("matchStatus")== "Finished":
-                logger.info(f"skipping match: {match.get("id")}")
+                logger.info(f"skipping match: {match.get('id')}")
                 continue
             logger.info(f"\n[{idx}/{total}] {match.get('homeTeam')} vs {match.get('awayTeam')}")
             result = self.predict_match(match)
