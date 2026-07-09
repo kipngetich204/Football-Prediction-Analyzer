@@ -103,7 +103,8 @@ def get_daily_matches() -> dict | None:
     """Synchronous fetch from the backend API."""
     try:
         logger.info("Fetching daily matches from API...")
-        response = requests.get("https://backend-livetips.onrender.com/daily")
+
+        response = requests.get("https://backend-livetips.onrender.com/daily", timeout= 5000)
 
         if response.status_code == 200:
             return response.json()
