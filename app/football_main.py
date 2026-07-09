@@ -1,6 +1,12 @@
+"""
+Football Prediction — CLI Runner
+Fetches the daily matches payload from the live API and outputs structured
+nested predictions.
+"""
 import json
 import logging
 import sys
+import time
 from pathlib import Path
 
 import os
@@ -99,21 +105,39 @@ def should_run_pipeline(current_fetched_data: object) -> dict:
 
 
 # Pull the latest daily match payload from the backend service.
-def get_daily_matches() -> dict | None:
-    """Synchronous fetch from the backend API."""
-    try:
-        logger.info("Fetching daily matches from API...")
+def get_daily_matches(
+    max_retries: int = 6,
+    initial_delay: float = 10.0,
+    backoff_factor: float = 1.5,
+    timeout: float = 60.0,
+) -> dict | None:
+    """
+    Synchronous fetch from the backend API, with retries to absorb Render's
+    free-tier cold start (server can take 30-60s+ to wake up on first hit).
+    """
+    url = os.getenv("daily_matches_api_url")
+    delay = initial_delay
 
-        response = requests.get("https://backend-livetips.onrender.com/daily", timeout= 5000)
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info(f"Fetching daily matches from API (attempt {attempt}/{max_retries})...")
+            response = requests.get(url, timeout=timeout)
 
-        if response.status_code == 200:
-            return response.json()
+            if response.status_code == 200:
+                return response.json()
 
-        logger.warning(
-            f"API returned non-200 status: {response.status_code}"
-        )
-    except requests.RequestException as e:
-        logger.warning(f"Could not fetch from API ({e})")
+            logger.warning(
+                f"API returned non-200 status: {response.status_code} (attempt {attempt}/{max_retries})"
+            )
+        except requests.RequestException as e:
+            logger.warning(f"Could not fetch from API ({e}) (attempt {attempt}/{max_retries})")
+
+        if attempt < max_retries:
+            logger.info(f"Retrying in {delay:.0f}s (likely a Render cold start)...")
+            time.sleep(delay)
+            delay *= backoff_factor
+
+    logger.error("Giving up: API did not return data after all retries.")
     return None
 
 
