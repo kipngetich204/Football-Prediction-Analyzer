@@ -115,7 +115,8 @@ def get_daily_matches(
     Synchronous fetch from the backend API, with retries to absorb Render's
     free-tier cold start (server can take 30-60s+ to wake up on first hit).
     """
-    url = os.getenv("daily_matches_api_url")
+
+    url= os.environ.get("DAILY_MATCHES_API_URL")
     delay = initial_delay
 
     for attempt in range(1, max_retries + 1):
