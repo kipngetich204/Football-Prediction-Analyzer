@@ -1,0 +1,36 @@
+name: Daily predictions
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  predict:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run predictions
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          FIREBASE_CREDS: ${{ secrets.FIREBASE_CREDS }}
+        run: python -m app.football_main
+
+      - name: Upload trajectories
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trajectories-${{ github.run_id }}
+          path: trajectories/
+          retention-days: 7

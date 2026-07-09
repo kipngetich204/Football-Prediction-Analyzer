@@ -1,5 +1,6 @@
 from collections import deque
 
+MAX_SCRATCHPAD_CHARS = 8000   # ~2000 tokens, leaves room for prompt + output
 
 class Scratchpad:
     def __init__(self, max_entries: int = 20):
@@ -15,3 +16,17 @@ class Scratchpad:
 
     def format(self) -> str:
         return "\n".join(self._entries)
+    
+
+    def get_trimmed(self) -> str:
+        """Return the scratchpad truncated to the most recent content."""
+        full = self.get()   # your existing method
+        if len(full) <= MAX_SCRATCHPAD_CHARS:
+            return full
+        # Keep the tail — most recent searches are most relevant
+        trimmed = full[-MAX_SCRATCHPAD_CHARS:]
+        # Don't cut mid-line
+        first_newline = trimmed.find("\n")
+        if first_newline > 0:
+            trimmed = trimmed[first_newline + 1:]
+        return "[...earlier research truncated...]\n" + trimmed

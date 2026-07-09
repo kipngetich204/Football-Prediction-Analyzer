@@ -2,7 +2,7 @@ import time
 import json
 import logging
 from pathlib import Path
-from langchain_ollama import OllamaLLM
+from langchain_groq import ChatGroq
 
 from .state import AgentState, AgentStatus, ToolResult
 from .planner import Planner
@@ -21,10 +21,18 @@ TRAJECTORY_DIR = Path("trajectories")
 
 
 class ResearchAgent:
-    def __init__(self, model: str = "qwen2.5:7b", ollama_base_url: str = "http://localhost:11434"):
-        self.llm = OllamaLLM(model=model, base_url=ollama_base_url)
-
-        # Register tools
+    def __init__(
+        self,
+        groq_api_key: str,
+        model: str = "llama-3.1-8b-instant",
+    ):
+        self.llm = ChatGroq(
+            model=model,
+            api_key=groq_api_key,
+            temperature=0.1,
+            max_tokens=2048,
+        )
+        # Register the tools available to the agent.
         self.registry = ToolRegistry()
         self.registry.register(WebSearchTool())
         self.registry.register(CalculatorTool())
@@ -46,7 +54,7 @@ class ResearchAgent:
             state.iteration_count += 1
             logger.info(f"Iteration {state.iteration_count}")
 
-            # --- PLAN ---
+            # Ask the planner which tool should be used next.
             try:
                 tool_call = self.planner.decide(state)
             except ValueError as e:
@@ -56,7 +64,7 @@ class ResearchAgent:
 
             logger.info(f"Planned tool: {tool_call.tool_name} with args: {tool_call.args}")
 
-            # --- ACT ---
+            # Run the chosen tool and record the result.
             tool = self.registry.get(tool_call.tool_name)
             if tool is None:
                 output = f"Unknown tool: {tool_call.tool_name}"
@@ -81,7 +89,7 @@ class ResearchAgent:
                 "success": success,
             })
 
-            # --- REFLECT ---
+            # Decide whether the current research is sufficient.
             decision = self.reflector.evaluate(state, output)
             logger.info(f"Reflector decision: {decision}")
 
@@ -95,11 +103,11 @@ class ResearchAgent:
         else:
             state.status = AgentStatus.MAX_ITER
 
-        # --- SYNTHESIZE ---
+        # Create the final written analysis from the collected evidence.
         final_answer = self.synthesizer.compile(state)
         state.final_answer = final_answer
 
-        # Log trajectory to disk
+        # Save the agent's step-by-step path for later inspection.
         self._save_trajectory(task, trajectory, final_answer)
 
         return final_answer
